@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseContainerInput, validateContainers } from "@/lib/validation/containers";
 import { startTrackingRun } from "@/lib/runner/track-runner";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const apiKey = process.env.SOLARI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "SOLARI_API_KEY is not set in Environment Variables. Please add SOLARI_API_KEY in your Vercel Project Settings.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json().catch(() => ({}));
     let containerList: string[] = [];
 
     if (Array.isArray(body.containers)) {

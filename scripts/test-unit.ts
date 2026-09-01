@@ -35,20 +35,24 @@ assert(validated.invalid.length === 1 && validated.invalid[0] === "INVALID99", "
 // 2. Urgency Calculation
 console.log("\n2. Urgency Calculation:");
 
+function formatYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const today = new Date();
-const todayIso = today.toISOString().split("T")[0];
+const todayIso = formatYmd(today);
 
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const tomorrowIso = tomorrow.toISOString().split("T")[0];
+const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+const tomorrowIso = formatYmd(tomorrow);
 
-const dayAfterTomorrow = new Date(today);
-dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-const dayAfterIso = dayAfterTomorrow.toISOString().split("T")[0];
+const dayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+const dayAfterIso = formatYmd(dayAfterTomorrow);
 
-const fiveDaysOut = new Date(today);
-fiveDaysOut.setDate(fiveDaysOut.getDate() + 5);
-const fiveDaysIso = fiveDaysOut.toISOString().split("T")[0];
+const fiveDaysOut = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 5);
+const fiveDaysIso = formatYmd(fiveDaysOut);
 
 assert(calculateUrgency(todayIso, today).urgency === "CRITICAL", "LFD today is CRITICAL");
 assert(calculateUrgency(tomorrowIso, today).urgency === "CRITICAL", "LFD tomorrow (<= 1d) is CRITICAL");

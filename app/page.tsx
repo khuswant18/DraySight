@@ -86,7 +86,13 @@ export default function HomePage() {
         body: JSON.stringify({ containers }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        const rawText = await res.text().catch(() => "");
+        throw new Error(rawText || `Server returned error status ${res.status}`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to start tracking");
