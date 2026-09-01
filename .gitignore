@@ -1,0 +1,39 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+
+# env files (secrets never tracked)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# sqlite db
+draysight.db
+draysight.db-wal
+draysight.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# vercel
+.vercel

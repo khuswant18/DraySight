@@ -1,0 +1,108 @@
+:root {
+  --bg-base: #070709;
+  --bg-surface: #0e0e12;
+  --bg-surface-raised: #14141a;
+  --bg-surface-hover: #1a1a24;
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-bright: rgba(255, 255, 255, 0.28);
+
+  --text-primary: #f4f4f6;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  --accent-cyan: #38bdf8;
+  --accent-cyan-subtle: rgba(56, 189, 248, 0.12);
+  --accent-cyan-border: rgba(56, 189, 248, 0.35);
+
+  --status-critical: #fb7185;
+  --status-critical-bg: rgba(251, 113, 133, 0.1);
+  --status-critical-border: rgba(251, 113, 133, 0.3);
+
+  --status-urgent: #fbbf24;
+  --status-urgent-bg: rgba(251, 191, 36, 0.1);
+  --status-urgent-border: rgba(251, 191, 36, 0.3);
+
+  --status-normal: #34d399;
+  --status-normal-bg: rgba(52, 211, 153, 0.1);
+  --status-normal-border: rgba(52, 211, 153, 0.3);
+
+  --status-hold: #a78bfa;
+  --status-hold-bg: rgba(167, 139, 250, 0.1);
+  --status-hold-border: rgba(167, 139, 250, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-base);
+  background-image: 
+    radial-gradient(ellipse at 50% -10%, rgba(56, 189, 248, 0.06) 0%, transparent 60%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  color: var(--text-primary);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono), monospace;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Solari-style hairline panels */
+.solari-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.solari-panel:hover {
+  border-color: var(--border-medium);
+}
+
+.solari-panel-active {
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--border-medium);
+}
+
+/* Pulse animation */
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.live-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  display: inline-block;
+  animation: subtlePulse 2s infinite ease-in-out;
+}
