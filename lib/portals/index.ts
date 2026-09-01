@@ -4,7 +4,14 @@ import { LBCTAdapter } from "./lbct";
 
 export function getPortalAdapter(): TerminalPortalAdapter {
   const mode = process.env.PORTAL_MODE ?? "demo";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!baseUrl && process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
+  }
+  if (!baseUrl) {
+    baseUrl = "http://localhost:3000";
+  }
 
   switch (mode) {
     case "demo":

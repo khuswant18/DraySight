@@ -2,7 +2,8 @@ import Database from "better-sqlite3";
 import path from "path";
 import type { TrackingRun, ContainerResult, RunStatus } from "../types";
 
-const dbPath = path.resolve(process.cwd(), "draysight.db");
+const dbDir = process.env.VERCEL ? "/tmp" : process.cwd();
+const dbPath = path.resolve(dbDir, "draysight.db");
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
