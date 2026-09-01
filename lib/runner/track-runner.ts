@@ -57,9 +57,9 @@ export interface StartRunOptions {
   maxConcurrency?: number;
 }
 
-export async function startTrackingRun(
+export async function createTrackingRun(
   options: StartRunOptions
-): Promise<{ runId: string; initialRun: TrackingRun }> {
+): Promise<{ runId: string; initialRun: TrackingRun; executeBatch: () => Promise<void> }> {
   const { containers, maxConcurrency = 3 } = options;
   const adapter = getPortalAdapter();
 
@@ -78,12 +78,22 @@ export async function startTrackingRun(
 
   const initialRun = getRun(runId)!;
 
-  runBatchAsync(runId, containers, maxConcurrency, adapter);
+  const executeBatch = async () => {
+    await runBatchAsync(runId, containers, maxConcurrency, adapter);
+  };
 
+  return { runId, initialRun, executeBatch };
+}
+
+export async function startTrackingRun(
+  options: StartRunOptions
+): Promise<{ runId: string; initialRun: TrackingRun }> {
+  const { runId, initialRun, executeBatch } = await createTrackingRun(options);
+  executeBatch().catch((err) => console.error(`[TrackRunner] Batch error for ${runId}:`, err));
   return { runId, initialRun };
 }
 
-async function runBatchAsync(
+export async function runBatchAsync(
   runId: string,
   containers: string[],
   concurrency: number,
@@ -143,9 +153,9 @@ async function runBatchAsync(
   try {
     await Promise.allSettled(tasks);
     completeRun(runId);
-    console.log(`[TrackRunner] ✅ Run ${runId} finished successfully`);
+    console.log(`[TrackRunner] Run ${runId} finished successfully`);
   } catch (err) {
-    console.error(`[TrackRunner] Run ${runId} encounter completion error:`, err);
+    console.error(`[TrackRunner] Run ${runId} completion error:`, err);
     completeRun(runId);
   } finally {
     setTimeout(() => {

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { parseContainerInput, validateContainers } from "@/lib/validation/containers";
-import { startTrackingRun } from "@/lib/runner/track-runner";
+import { createTrackingRun } from "@/lib/runner/track-runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "SOLARI_API_KEY is not set in Environment Variables. Please add SOLARI_API_KEY in your Vercel Project Settings.",
+            "SOLARI_API_KEY is missing. Please add SOLARI_API_KEY in your Vercel Project Settings (Environment Variables).",
         },
         { status: 400 }
       );
@@ -48,10 +48,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { initialRun } = await startTrackingRun({ containers: valid });
+    const maxConcurrency = parseInt(process.env.MAX_CONCURRENCY || "3", 10);
+    const { runId, initialRun, executeBatch } = await createTrackingRun({
+      containers: valid,
+      maxConcurrency,
+    });
+
+    // Schedule background microVM fleet execution without blocking HTTP response
+    after(async () => {
+      try {
+        await executeBatch();
+      } catch (err) {
+        console.error(`[API /api/track] Background batch error for ${runId}:`, err);
+      }
+    });
 
     return NextResponse.json({
-      runId: initialRun.id,
+      runId,
       status: initialRun.status,
       portal: initialRun.portal,
       totalContainers: valid.length,
