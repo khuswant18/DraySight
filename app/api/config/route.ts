@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPortalAdapter } from "@/lib/portals";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const portalMode = process.env.PORTAL_MODE ?? "demo";
   const adapter = getPortalAdapter();

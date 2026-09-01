@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "@solarisdk/browser",
     "patchright-core",
-    "better-sqlite3",
   ],
 };
 
