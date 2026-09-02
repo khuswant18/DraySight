@@ -514,5 +514,91 @@
       }
     ],
     "startedAt": "2026-09-02T05:27:14.373Z"
+  },
+  {
+    "id": "test_run_1788337705251",
+    "portal": "PacificPort Demo Terminal",
+    "status": "RUNNING",
+    "totalContainers": 2,
+    "completedCount": 2,
+    "failedCount": 0,
+    "containers": [
+      "DRAY1000001",
+      "DRAY2000002"
+    ],
+    "results": [
+      {
+        "containerNumber": "DRAY1000001",
+        "status": "READY",
+        "statusText": "Available for Pickup",
+        "lastFreeDay": "2026-09-05",
+        "daysUntilLastFreeDay": 3,
+        "urgency": "NORMAL",
+        "sourcePortal": "PacificPort Demo Terminal",
+        "checkedAt": "2026-09-02T08:28:25.251Z",
+        "confidence": "HIGH",
+        "rawEvidence": [
+          "Available for Pickup",
+          "Last Free Day: 09/05/2026"
+        ],
+        "sessionId": "sess_123"
+      },
+      {
+        "containerNumber": "DRAY3000003",
+        "status": "HOLD",
+        "statusText": "Customs Hold — Documentation Required",
+        "urgency": "UNKNOWN",
+        "sourcePortal": "PacificPort Demo Terminal",
+        "checkedAt": "2026-09-02T08:28:25.251Z",
+        "confidence": "HIGH",
+        "rawEvidence": [
+          "Customs Hold — Documentation Required"
+        ]
+      }
+    ],
+    "startedAt": "2026-09-02T08:28:25.251Z"
+  },
+  {
+    "id": "test_run_1788337969436",
+    "portal": "PacificPort Demo Terminal",
+    "status": "RUNNING",
+    "totalContainers": 2,
+    "completedCount": 2,
+    "failedCount": 0,
+    "containers": [
+      "DRAY1000001",
+      "DRAY2000002"
+    ],
+    "results": [
+      {
+        "containerNumber": "DRAY1000001",
+        "status": "READY",
+        "statusText": "Available for Pickup",
+        "lastFreeDay": "2026-09-05",
+        "daysUntilLastFreeDay": 3,
+        "urgency": "NORMAL",
+        "sourcePortal": "PacificPort Demo Terminal",
+        "checkedAt": "2026-09-02T08:32:49.436Z",
+        "confidence": "HIGH",
+        "rawEvidence": [
+          "Available for Pickup",
+          "Last Free Day: 09/05/2026"
+        ],
+        "sessionId": "sess_123"
+      },
+      {
+        "containerNumber": "DRAY3000003",
+        "status": "HOLD",
+        "statusText": "Customs Hold — Documentation Required",
+        "urgency": "UNKNOWN",
+        "sourcePortal": "PacificPort Demo Terminal",
+        "checkedAt": "2026-09-02T08:32:49.436Z",
+        "confidence": "HIGH",
+        "rawEvidence": [
+          "Customs Hold — Documentation Required"
+        ]
+      }
+    ],
+    "startedAt": "2026-09-02T08:32:49.436Z"
   }
 ]

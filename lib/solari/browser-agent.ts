@@ -16,6 +16,15 @@ export interface AgentCheckResult {
   durationMs?: number;
 }
 
+async function captureScreenshot(page: Page): Promise<string | null> {
+  try {
+    const buf = await page.screenshot({ type: "png", fullPage: false });
+    return buf.toString("base64");
+  } catch {
+    return null;
+  }
+}
+
 export async function checkContainer(
   options: AgentCheckOptions
 ): Promise<AgentCheckResult> {
@@ -50,23 +59,34 @@ export async function checkContainer(
 
       try {
         const page = await browser.newPage();
+        const screenshots: string[] = [];
 
         console.log(`[Agent] Logging in to ${adapter.portalName}...`);
         await adapter.login(page);
 
+        // Capture screenshot after login
+        const loginShot = await captureScreenshot(page);
+        if (loginShot) screenshots.push(loginShot);
+
         console.log(`[Agent] Searching container ${containerNumber}...`);
         const rawResult = await adapter.searchContainer(page, containerNumber);
+
+        // Capture screenshot of search results
+        const resultShot = await captureScreenshot(page);
+        if (resultShot) screenshots.push(resultShot);
 
         console.log(`[Agent] Normalizing result for ${containerNumber}...`);
         const normalized = normalizeResult(rawResult, adapter.portalName, sessionId);
 
+        // Attach screenshots to the result
+        if (screenshots.length > 0) {
+          normalized.screenshots = screenshots;
+        }
+
         const durationMs = Date.now() - startTime;
         console.log(
-          `[Agent] ✅ ${containerNumber}: ${normalized.status} (${durationMs}ms)`
+          `[Agent] ✅ ${containerNumber}: ${normalized.status} (${durationMs}ms, ${screenshots.length} screenshots)`
         );
-
-        // Pause briefly so cloud recording buffer captures the final UI state
-        await new Promise((r) => setTimeout(r, 1500));
 
         return { result: normalized, sessionId, durationMs };
       } finally {

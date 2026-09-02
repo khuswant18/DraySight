@@ -309,6 +309,7 @@ export function ContainerDetails({
           sessionId={container.sessionId}
           containerNumber={container.containerNumber}
           portalName={container.sourcePortal}
+          screenshots={container.screenshots}
           onClose={() => setIsReplayModalOpen(false)}
         />
       )}

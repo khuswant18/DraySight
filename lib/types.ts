@@ -25,6 +25,7 @@ export interface ContainerResult {
   rawEvidence?: string[];
   error?: string;
   sessionId?: string;
+  screenshots?: string[]; // base64 PNG screenshots at key moments
 }
 
 export type RunStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
