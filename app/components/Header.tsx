@@ -9,7 +9,12 @@ interface PortalConfig {
   maxConcurrency: number;
 }
 
-export function Header() {
+interface HeaderProps {
+  selectedPortalMode?: "demo" | "lbct";
+  onPortalModeChange?: (mode: "demo" | "lbct") => void;
+}
+
+export function Header({ selectedPortalMode, onPortalModeChange }: HeaderProps) {
   const [config, setConfig] = useState<PortalConfig>({
     portalMode: "demo",
     portalName: "PacificPort Demo Terminal",
@@ -32,7 +37,8 @@ export function Header() {
     loadConfig();
   }, []);
 
-  const isRealMode = config.portalMode === "lbct";
+  const activeMode = selectedPortalMode ?? config.portalMode;
+  const isRealMode = activeMode === "lbct";
   const portalUrl = isRealMode ? "https://portal.lbct.com/CargoSearch" : "/demo-terminal/login";
 
   return (

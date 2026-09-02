@@ -4,13 +4,23 @@ import { useState, useMemo } from "react";
 import { parseContainerInput, validateContainers } from "@/lib/validation/containers";
 
 interface ContainerInputProps {
-  onTrack: (containers: string[]) => void;
+  onTrack: (containers: string[], portalMode: "demo" | "lbct") => void;
   isLoading: boolean;
+  selectedPortalMode: "demo" | "lbct";
+  onPortalModeChange: (mode: "demo" | "lbct") => void;
 }
 
 const DEMO_PRESETS = [
   {
+    label: "Live LBCT Search (MSCU1234567)",
+    target: "lbct" as const,
+    badge: "Public Web — No Tunnel Needed",
+    containers: ["MSCU1234567"],
+  },
+  {
     label: "6x Demo Batch (Multi-Urgency)",
+    target: "demo" as const,
+    badge: "PacificPort Sandbox",
     containers: [
       "DRAY1000001",
       "DRAY2000002",
@@ -22,6 +32,8 @@ const DEMO_PRESETS = [
   },
   {
     label: "Urgent Demurrage Risk (0-1d LFD)",
+    target: "demo" as const,
+    badge: "PacificPort Sandbox",
     containers: [
       "DRAY4000004",
       "DRAY2000002",
@@ -29,13 +41,14 @@ const DEMO_PRESETS = [
       "DRAY3000003",
     ],
   },
-  {
-    label: "Live LBCT Search (MSCU1234567)",
-    containers: ["MSCU1234567"],
-  },
 ];
 
-export function ContainerInput({ onTrack, isLoading }: ContainerInputProps) {
+export function ContainerInput({
+  onTrack,
+  isLoading,
+  selectedPortalMode,
+  onPortalModeChange,
+}: ContainerInputProps) {
   const [rawText, setRawText] = useState("");
 
   const parsed = useMemo(() => {
@@ -43,13 +56,14 @@ export function ContainerInput({ onTrack, isLoading }: ContainerInputProps) {
     return validateContainers(list);
   }, [rawText]);
 
-  const handlePreset = (containers: string[]) => {
-    setRawText(containers.join("\n"));
+  const handlePreset = (preset: (typeof DEMO_PRESETS)[number]) => {
+    setRawText(preset.containers.join("\n"));
+    onPortalModeChange(preset.target);
   };
 
   const handleTrackClick = () => {
     if (parsed.valid.length === 0 || isLoading) return;
-    onTrack(parsed.valid);
+    onTrack(parsed.valid, selectedPortalMode);
   };
 
   return (
@@ -84,7 +98,7 @@ export function ContainerInput({ onTrack, isLoading }: ContainerInputProps) {
           {DEMO_PRESETS.map((preset) => (
             <button
               key={preset.label}
-              onClick={() => handlePreset(preset.containers)}
+              onClick={() => handlePreset(preset)}
               className="mono"
               style={{
                 fontSize: "11px",
@@ -108,6 +122,91 @@ export function ContainerInput({ onTrack, isLoading }: ContainerInputProps) {
               {preset.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Target Terminal Selector */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "14px",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>
+          Target Terminal:
+        </span>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => onPortalModeChange("lbct")}
+            className="mono"
+            style={{
+              fontSize: "12px",
+              padding: "6px 14px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor:
+                selectedPortalMode === "lbct"
+                  ? "rgba(52, 211, 153, 0.12)"
+                  : "var(--bg-surface)",
+              border:
+                selectedPortalMode === "lbct"
+                  ? "1px solid #34d399"
+                  : "1px solid var(--border-subtle)",
+              color: selectedPortalMode === "lbct" ? "#34d399" : "var(--text-muted)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span
+              style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                backgroundColor: selectedPortalMode === "lbct" ? "#34d399" : "var(--text-muted)",
+              }}
+            />
+            LBCT Real Terminal (Public Web — Direct)
+          </button>
+          <button
+            type="button"
+            onClick={() => onPortalModeChange("demo")}
+            className="mono"
+            style={{
+              fontSize: "12px",
+              padding: "6px 14px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor:
+                selectedPortalMode === "demo"
+                  ? "rgba(56, 189, 248, 0.12)"
+                  : "var(--bg-surface)",
+              border:
+                selectedPortalMode === "demo"
+                  ? "1px solid #38bdf8"
+                  : "1px solid var(--border-subtle)",
+              color: selectedPortalMode === "demo" ? "#38bdf8" : "var(--text-muted)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span
+              style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                backgroundColor: selectedPortalMode === "demo" ? "#38bdf8" : "var(--text-muted)",
+              }}
+            />
+            PacificPort Sandbox (Demo Terminal)
+          </button>
         </div>
       </div>
 

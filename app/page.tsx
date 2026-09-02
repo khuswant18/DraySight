@@ -17,6 +17,7 @@ export default function HomePage() {
   const [selectedContainer, setSelectedContainer] = useState<ContainerResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedPortalMode, setSelectedPortalMode] = useState<"demo" | "lbct">("lbct");
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -56,9 +57,19 @@ export default function HomePage() {
     };
   }, [currentRun?.id, currentRun?.status]);
 
-  // Load most recent run on mount if exists
+  // Load config & most recent run on mount if exists
   useEffect(() => {
-    async function loadLatest() {
+    async function loadInitial() {
+      try {
+        const cfgRes = await fetch("/api/config");
+        if (cfgRes.ok) {
+          const cfg = await cfgRes.json();
+          if (cfg.portalMode === "lbct" || cfg.portalMode === "demo") {
+            setSelectedPortalMode(cfg.portalMode);
+          }
+        }
+      } catch {}
+
       try {
         const res = await fetch("/api/runs");
         if (res.ok) {
@@ -71,10 +82,11 @@ export default function HomePage() {
         // ignore initial fetch error
       }
     }
-    loadLatest();
+    loadInitial();
   }, []);
 
-  const handleStartTrack = async (containers: string[]) => {
+  const handleStartTrack = async (containers: string[], modeOverride?: "demo" | "lbct") => {
+    const targetMode = modeOverride ?? selectedPortalMode;
     setIsSubmitting(true);
     setErrorMsg(null);
     setSelectedContainer(null);
@@ -83,7 +95,7 @@ export default function HomePage() {
       const res = await fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ containers }),
+        body: JSON.stringify({ containers, portalMode: targetMode }),
       });
 
       let data: any = {};
@@ -103,7 +115,7 @@ export default function HomePage() {
       } else {
         setCurrentRun({
           id: data.runId,
-          portal: data.portal || "PacificPort Demo Terminal",
+          portal: data.portal || (targetMode === "lbct" ? "LBCT — Long Beach Container Terminal" : "PacificPort Demo Terminal"),
           status: data.status || "COMPLETED",
           totalContainers: data.totalContainers,
           completedCount: data.completedCount || (data.results ? data.results.length : 0),
@@ -128,14 +140,17 @@ export default function HomePage() {
       "DRAY4000004",
       "DRAY7000007",
       "DRAY8000008",
-    ]);
+    ], "demo");
   };
 
   const isRunning = (currentRun?.status === "RUNNING" && activeSessions.length > 0) || isSubmitting;
 
   return (
     <div style={{ minHeight: "100vh" }}>
-      <Header />
+      <Header
+        selectedPortalMode={selectedPortalMode}
+        onPortalModeChange={(m) => setSelectedPortalMode(m)}
+      />
 
       <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 24px" }}>
         <div style={{ marginBottom: "36px" }}>
@@ -193,7 +208,12 @@ export default function HomePage() {
         )}
 
         <div style={{ marginBottom: "28px" }}>
-          <ContainerInput onTrack={handleStartTrack} isLoading={isRunning || isSubmitting} />
+          <ContainerInput
+            onTrack={handleStartTrack}
+            isLoading={isRunning || isSubmitting}
+            selectedPortalMode={selectedPortalMode}
+            onPortalModeChange={(m) => setSelectedPortalMode(m)}
+          />
         </div>
 
         {isRunning && currentRun && (

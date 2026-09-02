@@ -55,13 +55,14 @@ class Semaphore {
 export interface StartRunOptions {
   containers: string[];
   maxConcurrency?: number;
+  portalMode?: string;
 }
 
 export async function createTrackingRun(
   options: StartRunOptions
 ): Promise<{ runId: string; initialRun: TrackingRun; executeBatch: () => Promise<void> }> {
-  const { containers, maxConcurrency = 3 } = options;
-  const adapter = getPortalAdapter();
+  const { containers, maxConcurrency = 3, portalMode } = options;
+  const adapter = getPortalAdapter(portalMode);
 
   const runId = `run_${Date.now()}_${uuidv4().slice(0, 6)}`;
   createRun(runId, containers, adapter.portalName);

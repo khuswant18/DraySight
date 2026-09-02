@@ -49,10 +49,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const portalMode = body.portalMode || process.env.PORTAL_MODE || "demo";
+
+    if (portalMode === "demo") {
+      let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      if (!baseUrl && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      } else if (!baseUrl && process.env.VERCEL_URL) {
+        baseUrl = `https://${process.env.VERCEL_URL}`;
+      }
+      if (!baseUrl) {
+        baseUrl = "http://localhost:3000";
+      }
+
+      if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+        return NextResponse.json(
+          {
+            error:
+              "Solari browsers execute on cloud microVMs and cannot connect directly to 'localhost'. To test with PacificPort Demo Terminal locally, expose port 3000 via a tunnel (e.g., `npx cloudflared tunnel --url http://localhost:3000` and update NEXT_PUBLIC_BASE_URL in .env.local), or switch Target Terminal to 'LBCT (Real Terminal)' to run without any tunnel.",
+          },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const pingRes = await fetch(`${baseUrl}/demo-terminal/login`, {
+          method: "HEAD",
+          signal: controller.signal,
+        }).catch(() => null);
+        clearTimeout(timeout);
+
+        if (!pingRes || (!pingRes.ok && pingRes.status >= 500)) {
+          return NextResponse.json(
+            {
+              error: `The configured demo terminal URL (${baseUrl}) is unreachable or the tunnel is inactive. Please restart your tunnel (e.g., \`npx cloudflared tunnel --url http://localhost:3000\`), or switch Target Terminal to 'LBCT (Real Terminal)'.`,
+            },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          {
+            error: `Could not connect to demo terminal tunnel at ${baseUrl}. Please check your tunnel or switch Target Terminal to 'LBCT (Real Terminal)'.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const maxConcurrency = parseInt(process.env.MAX_CONCURRENCY || "3", 10);
     const { runId, initialRun, executeBatch } = await createTrackingRun({
       containers: valid,
       maxConcurrency,
+      portalMode,
     });
 
     // Execute the Solari cloud browser fleet
