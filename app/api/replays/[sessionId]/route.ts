@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSolariClient } from "@/lib/solari/client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
@@ -18,7 +20,26 @@ export async function GET(
 
   try {
     const solari = await getSolariClient();
-    const replay = await solari.sessions.getReplayUrl(sessionId);
+
+    // Retry loop to handle Solari S3 upload latency right after session closure
+    let replay: any = null;
+    let lastErr: any = null;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        replay = await solari.sessions.getReplayUrl(sessionId);
+        if (replay?.url) break;
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
+    }
+
+    if (!replay?.url) {
+      throw lastErr || new Error("Replay URL not available yet");
+    }
 
     if (!wantEvents) {
       return NextResponse.json({
@@ -78,7 +99,7 @@ export async function GET(
       {
         error:
           error?.status === 404
-            ? "Replay recording is still being processed or was not recorded."
+            ? "Replay recording is still being processed by Solari S3. Please retry in a few seconds."
             : error?.message || "Failed to retrieve session replay",
       },
       { status: error?.status || 500 }
