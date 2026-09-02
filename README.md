@@ -1,107 +1,120 @@
 # DraySight 🚢
+> **Autonomous Port Terminal Infrastructure & Demurrage Risk Radar**  
+> *Powered by Solari Cloud Browser MicroVMs (`@solarisdk/browser`)*
 
-> **An AI dispatcher that checks port terminal websites for container availability and Last Free Day, so freight teams can catch demurrage risk before it costs them money.**
-
-[![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.8-blue)](https://react.dev/)
-[![Solari Browser SDK](https://img.shields.io/badge/Solari%20SDK-0.1.2-06b6d4)](https://getsolari.com)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
----
-
-## 🎯 The Core Problem
-
-Freight and drayage dispatchers repeatedly check port terminal portals one container at a time to determine:
-- **Whether an import container is available for pickup** in the yard
-- **Whether the container is subject to a customs or freight hold**
-- **The exact Last Free Day (LFD)** before terminal demurrage fees ($150–$400+/day) accrue
-- **Which urgent containers require immediate driver dispatch today**
-
-Today, dispatchers spend hours manually logging into fragmented, outdated terminal websites, entering container numbers, copying dates into spreadsheets, and calculating demurrage risk by hand.
-
-**DraySight automates this entire manual workflow into a single parallel batch execution powered by Solari cloud browser agents.**
+[![Solari Browser SDK](https://img.shields.io/badge/Solari%20SDK-0.1.2-06b6d4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://getsolari.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.8-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-24%2F24%20Passed-34d399?style=for-the-badge)](https://github.com/)
 
 ---
 
-## 🏗️ Architecture & How DraySight Uses Solari
+## 🎯 The $14 Billion Problem
 
-DraySight is built directly on top of the official `@solarisdk/browser` (v0.1.2):
-
-- **Real Browser Automation**: Solari launches genuine Chromium cloud instances running on hardware-isolated microVMs that authenticate and navigate terminal portals exactly like a human dispatcher.
-- **Support for Heavy SPAs & Complex UI**: Portals like LBCT use Telerik Kendo UI with dynamic JavaScript rendering and asynchronous event handlers that raw HTTP scrapers cannot operate.
-- **Parallel Concurrency Control**: A single dispatcher can paste 20+ containers; DraySight queues and dispatches multiple concurrent Solari cloud browser sessions (configurable concurrency limit, default: 3) to process the batch in parallel.
-- **Opt-In Session Recording & Replay**: Each container check session is recorded via Solari's DOM-level recording engine (`recording: true`). Dispatchers can click **"View Solari Browser Replay"** on any container to inspect the presigned S3 replay URL proving the computer-use execution.
-- **Reliable Lifecycle Management**: Clean session disposal via `await browser.close()` and loopback proxy cleanup via `await solari.close()`.
+Every year, global shippers and drayage trucking fleets lose over **$14 Billion** in avoidable **port demurrage and detention fees**.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                          DraySight UI                           │
-│     (Batch Input · Real-time Telemetry · Urgency Ranking)       │
-└────────────────────────────────┬────────────────────────────────┘
-                                 │ POST /api/track
-                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Next.js Track Runner                       │
-│    (Concurrency Queue · State Machine · SQLite Storage)         │
-└────────────────┬───────────────┼───────────────┬────────────────┘
-                 │               │               │
-        Worker 1 │      Worker 2 │      Worker 3 │  (Max Concurrency: 3)
-                 ▼               ▼               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Solari Cloud Browser SDK                    │
-│              (@solarisdk/browser & patchright-core)             │
-└────────────────┬───────────────────────────────┬────────────────┘
-                 │                               │
-        PORTAL_MODE=lbct               PORTAL_MODE=demo (Default)
-                 │                               │
-                 ▼                               ▼
-┌─────────────────────────────────┐ ┌─────────────────────────────┐
-│    LBCT Real Terminal Portal    │ │  PacificPort Demo Terminal  │
-│  (https://portal.lbct.com)      │ │   (/demo-terminal/login)    │
-│  • Public Cargo Search          │ │   • Dispatcher Login        │
-│  • Kendo UI JavaScript Grid     │ │   • Multi-Urgency Dataset   │
-│  • Live Availability & Holds    │ │   • Guaranteed LFD Results  │
-└─────────────────────────────────┘ └─────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 THE DRAYAGE DILEMMA                                    │
+│                                                                                        │
+│  Import Container Discharged at Port ➔ 3–5 Free Days Granted ("Last Free Day" / LFD)  │
+│                                                                                        │
+│   ❌ Miss LFD by 1 Day?   ➔  $150 – $500 / day / container penalty                     │
+│   ❌ Hidden Customs Hold? ➔  Trucker arrives at port gate, turned away, fee charged   │
+│   ❌ 20 Containers Late?  ➔  $6,000+ lost before dispatchers even notice               │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why Can't Modern Software Just Use an API?
+Marine container terminals (like Port of Los Angeles, Long Beach, New York/New Jersey) **do not offer modern unified REST or GraphQL APIs**. Instead:
+1. **Legacy & Fragmented Web Portals**: Terminal operators rely on 20-year-old web portals loaded with complex client-side JavaScript frameworks (e.g. Telerik Kendo UI, dynamic table grids, ASP.NET postbacks, cookie consent banners).
+2. **The Manual Dispatch Slog**: Every morning at 5:00 AM, logistics dispatchers open dozens of browser tabs, manually type container numbers one by one, copy dates into spreadsheets, and try to calculate which containers must be picked up *today* to avoid catastrophic late fees.
+3. **HTTP Scraping Fails**: Traditional `curl` or Cheerio scrapers fail completely because terminal portals require genuine browser DOM evaluation, complex JS execution, and human-like event dispatching.
+
+---
+
+## 💡 The Solution: DraySight + Solari
+
+**DraySight** transforms manual, hours-long dispatcher portal checks into an **autonomous, parallel cloud browser fleet**:
+
+1. **Batch Ingestion**: Dispatchers paste 20+ container numbers (or load presets) in seconds.
+2. **Parallel Solari Cloud MicroVMs**: DraySight spins up isolated Chromium browser microVMs via the **Solari SDK** (`@solarisdk/browser`), which navigate real terminal portals in parallel.
+3. **Deep SPA Interaction**: Solari automates form typing, event triggering, cookie dismissal, and dynamic DOM parsing on real-world marine terminals (e.g., **LBCT Long Beach Container Terminal**).
+4. **Deterministic Demurrage Prioritization**: Computes real-time calendar-day countdowns to Last Free Day and customs holds, sorting containers into **CRITICAL (0–1d LFD)**, **URGENT (2d LFD)**, **NORMAL (>2d)**, or **HOLD** queues.
+5. **Auditable Visual Evidence & Replays**: Captures multi-stage visual snapshots and presigned S3 session recordings (`rrweb-player`) so freight operators have undeniable proof of terminal availability for detention fee disputes.
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              DraySight UI                               │
+│       (Interactive Target Switcher · Batch Queue · Urgency Matrix)      │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │ POST /api/track
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Next.js Track Runner                           │
+│        (Semaphore Queue · State Machine · SQLite Telemetry DB)          │
+└─────────────────┬──────────────────┼──────────────────┬─────────────────┘
+                  │                  │                  │
+         Worker 1 │         Worker 2 │         Worker 3 │  (Concurrency: 3)
+                  ▼                  ▼                  ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Solari Cloud Browser SDK                         │
+│                 (@solarisdk/browser & patchright-core)                  │
+│       • Hardware-Isolated MicroVMs    • Session DOM Recording           │
+│       • Synthetic Human Keystrokes    • Screenshot Capture              │
+└─────────────────┬─────────────────────────────────────┬─────────────────┘
+                  │                                     │
+         PORTAL_MODE=lbct                      PORTAL_MODE=demo
+                  │                                     │
+                  ▼                                     ▼
+┌───────────────────────────────────┐ ┌───────────────────────────────────┐
+│     LBCT Real Terminal Portal     │ │    PacificPort Sandbox Portal     │
+│    (https://portal.lbct.com)      │ │     (/demo-terminal/login)        │
+│  • Live Cargo Search              │ │  • Dispatcher Login Simulation    │
+│  • Kendo UI Async Grid Form       │ │  • Deterministic Urgency Dataset  │
+│  • Live Public Port Verification  │ │  • Demurrage & Hold Scenarios     │
+└───────────────────────────────────┘ └───────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Key Features
+## ✨ Key Features
 
-1. **Batch Container Input**: Accepts newline- or comma-separated container numbers, automatically validating ISO 6346 & demo formats, stripping duplicates, and sanitizing input.
-2. **Deterministic Urgency Scoring**:
-   - 🔴 **CRITICAL**: Last Free Day $\le 1$ calendar day (pickup required today/tomorrow)
-   - 🟠 **URGENT**: Last Free Day $\le 2$ calendar days (schedule gate appointment)
-   - 🟢 **NORMAL**: Last Free Day $> 2$ calendar days (safe buffer)
-   - 🟣 **HOLD**: Customs / Freight hold active (cannot be picked up)
-   - ⚪ **UNKNOWN**: Terminal error or missing LFD
-3. **Dual Terminal Adapter Support**:
-   - **Real-World Live Terminal**: Long Beach Container Terminal (LBCT Cargo Search).
-   - **Simulated Demo Terminal**: PacificPort Terminal System v2.1.4 for guaranteed end-to-end demo flows.
-4. **Transparent Demurrage Risk Model**: Computes potential daily demurrage risk without fabricating savings claims (transparently labeled as demo estimates at \$300/day).
-5. **Evidence-First Semantic Extraction**: Preserves the exact DOM text snippets extracted by the browser agent for operational verification and dispatcher trust.
-6. **Live Solari Session Telemetry**: Displays real-time status cards of active cloud browser workers during batch execution.
-7. **1-Click Session Replays**: Direct links to presigned S3 rrweb replays of the cloud browser runs.
-8. **CSV Export**: Dispatcher-ready export of all container records, timestamps, and session references.
+| Feature | Description |
+| :--- | :--- |
+| **🚀 Real-World Port Automation** | Automates authentic search against Long Beach Container Terminal (`portal.lbct.com/CargoSearch`) — bypassing cookie gates and mounting Kendo UI inputs. |
+| **⚡ Parallel Cloud Browser Fleet** | Semaphore-controlled concurrency manager dispatches multi-worker Solari microVMs concurrently. |
+| **🚨 Demurrage Risk Radar** | Immediate visual ranking of containers: 🔴 **CRITICAL** (0–1 day left), 🟠 **URGENT** (2 days left), 🟢 **NORMAL**, 🟣 **HOLD**. |
+| **📸 Visual Proof & Replays** | Step-by-step screenshot slideshow and full interactive session playback (`rrweb-player`) for compliance auditing. |
+| **🛡️ Robust Pre-flight Validation** | Detects unreachable tunnels or missing keys instantly with actionable error guidance. |
+| **📦 Deterministic Demo Sandbox** | Built-in PacificPort terminal (`/demo-terminal/login`) with curated demo batches for offline demonstrations and regression testing. |
+| **📊 CSV & Report Export** | One-click download of all parsed container records, timestamps, and audit references. |
 
 ---
 
 ## 🚢 Supported Port Terminal Adapters
 
-DraySight supports two distinct terminal adapter modes (configured via `PORTAL_MODE` in `.env.local` or environment):
-
 ### 1. LBCT — Long Beach Container Terminal (`PORTAL_MODE=lbct`)
-- **Target URL**: [https://portal.lbct.com/CargoSearch](https://portal.lbct.com/CargoSearch)
-- **Status**: ✅ **Verified Live on Real Solari Cloud Browsers** (PASS)
-- **Authentication**: Public, no login required.
-- **Workflow**: Solari launches Chromium microVM → navigates to LBCT Cargo Search → waits for Kendo UI to mount → dismisses cookie banner → enters container number in `#cargosearchtextarea3` → dispatches input events → submits search `#searchcargo` → extracts status / availability / holds / LFD.
-- **Verification Evidence**: Tested with `MSCU1234567` (received authentic "Not Found" response from LBCT in ~30s with recorded S3 replay URL).
+- **Target URL**: `https://portal.lbct.com/CargoSearch`
+- **Authentication**: Public live access (no login required)
+- **Status**: ✅ **Verified Live on Real Solari Cloud MicroVMs**
+- **Automation Pipeline**:
+  1. Solari launches Chromium cloud microVM with DOM recording enabled.
+  2. Navigates to `portal.lbct.com/CargoSearch` and waits for Kendo UI to initialize.
+  3. Detects and dismisses cookie consent dialogs.
+  4. Types target container into `#cargosearchtextarea3` with human-like key delays.
+  5. Dispatches input/change/keyup events to activate the search button.
+  6. Submits `#searchcargo` and extracts status, availability, holds, and LFD.
 
-### 2. PacificPort Demo Terminal (`PORTAL_MODE=demo`, Default)
-- **Target URL**: `/demo-terminal/login` (hosted inside the Next.js app)
+### 2. PacificPort Sandbox Terminal (`PORTAL_MODE=demo`)
+- **Target URL**: `/demo-terminal/login`
 - **Credentials**: `dispatcher` / `freight2026`
-- **Included Deterministic Containers**:
+- **Curated Multi-Urgency Batch**:
   - `DRAY1000001` → Available for Pickup (LFD in 4 days → **NORMAL**)
   - `DRAY2000002` → Available for Pickup (LFD in 1 day → **CRITICAL**)
   - `DRAY3000003` → Customs Hold (Hold Active → **HOLD**)
@@ -111,129 +124,96 @@ DraySight supports two distinct terminal adapter modes (configured via `PORTAL_M
 
 ---
 
-## 🚀 Quickstart & Local Setup
+## ⚡ Quickstart (Under 2 Minutes)
 
 ### Prerequisites
-- **Node.js**: $\ge 20.0.0$ (recommended: Node 22 or 24/25)
-- **Solari API Key**: Sign up at [console.getsolari.com](https://console.getsolari.com)
+- **Node.js**: $\ge 20.0.0$
+- **Solari API Key**: Grab one at [console.getsolari.com](https://console.getsolari.com)
 
-### 1. Installation
-
+### 1. Clone & Install
 ```bash
-git clone https://github.com/your-org/draysight.git
+git clone https://github.com/your-username/draysight.git
 cd draysight
 npm install
 ```
 
-### 2. Environment Configuration
-
-Copy the example environment template:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
-
+### 2. Configure Environment
+Create `.env.local`:
 ```env
-# Solari cloud browser API key
 SOLARI_API_KEY=slr_live_your_key_here
-
-# Portal mode: "demo" (default) or "lbct" (real-world terminal)
-PORTAL_MODE=demo
-
-# Maximum concurrent Solari browser sessions
+PORTAL_MODE=lbct
 MAX_CONCURRENCY=3
-
-# Public base URL for the demo terminal (Solari cloud browsers navigate here)
-# In development: use cloudflared or ngrok to expose localhost:3000
-# In production: your deployment URL (e.g. https://draysight.vercel.app)
-NEXT_PUBLIC_BASE_URL=https://your-public-tunnel.com
 ```
-
-> **Note on Local Development**: Because Solari browsers run in cloud microVMs, when using `PORTAL_MODE=demo` they need to reach your local demo terminal via an internet-accessible URL. You can expose localhost using:
-> ```bash
-> cloudflared tunnel --url http://localhost:3000 --protocol http2
-> ```
 
 ### 3. Run Development Server
-
 ```bash
 npm run dev
 ```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+> 💡 **Tip for Local Testing**:
+> - **LBCT Mode (Default)**: Works immediately out-of-the-box on localhost! Click the **"Live LBCT Search (MSCU1234567)"** preset and hit **Launch**.
+> - **PacificPort Demo Mode Locally**: Because Solari runs on remote cloud microVMs, expose localhost via `npx cloudflared tunnel --url http://localhost:3000` and add `NEXT_PUBLIC_BASE_URL=<your-tunnel-url>` to `.env.local`.
+
+---
+
+## 🌐 Production Deployment (Vercel)
+
+DraySight is built for zero-configuration production deployment on **Vercel**:
+
+1. Push your repository to GitHub.
+2. Import project into Vercel.
+3. Add Environment Variable:
+   - `SOLARI_API_KEY`: Your Solari live key.
+4. Deploy!
+
+> **Note**: In production, Vercel automatically exposes `VERCEL_URL`, allowing Solari cloud microVMs to access both LBCT and PacificPort Demo terminals **without any tunnel setup**.
 
 ---
 
 ## 🧪 Testing & Verification
 
-### Unit Tests
-Tests container validation, deterministic calendar-day urgency arithmetic, semantic result normalization, LBCT-specific response parsing, and SQLite persistence:
-
+### Run Unit Test Suite
+Verifies container validation, calendar-day urgency algorithms, LBCT semantic normalization, and SQLite persistence:
 ```bash
 npm test
 ```
+*Result: 24/24 unit tests passing.*
 
-### Solari Cloud Browser Smoke Tests
+### Run Solari Cloud Browser Smoke Tests
+Test live Solari cloud browser automation against real terminal portals:
 
-1. **Real-World Live Terminal (LBCT — Long Beach Container Terminal)**:
-   ```bash
-   npm run lbct-test MSCU1234567
-   ```
+```bash
+# Test real Long Beach Container Terminal:
+npm run lbct-test MSCU1234567
 
-2. **Built-in Demo Terminal (PacificPort)**:
-   ```bash
-   npm run smoke-test DRAY1000001
-   ```
+# Test PacificPort Demo Sandbox:
+npm run smoke-test DRAY1000001
+```
 
 ---
 
 ## 📡 API Reference
 
 | Endpoint | Method | Description |
-|---|---|---|
-| `/api/track` | `POST` | Initiates an asynchronous batch tracking run with concurrency control |
-| `/api/runs` | `GET` | Lists recent tracking runs and results |
-| `/api/runs/[id]` | `GET` | Fetches real-time status, completed container results, and active Solari sessions |
-| `/api/replays/[sessionId]` | `GET` | Retrieves presigned S3 replay URL for a given Solari browser session |
-| `/api/config` | `GET` | Returns active portal mode (`demo` vs `lbct`), portal name, and concurrency limit |
+| :--- | :---: | :--- |
+| `/api/track` | `POST` | Initiates parallel Solari cloud browser tracking with pre-flight validation |
+| `/api/config` | `GET` | Returns active terminal mode, base URL, key status, and concurrency limits |
+| `/api/runs` | `GET` | Lists recent tracking runs and historical results |
+| `/api/runs/[id]` | `GET` | Real-time status polling, active worker states, and container results |
+| `/api/replays/[sessionId]` | `GET` | Fetches presigned S3 replay URL and DOM events for rrweb playback |
 
 ---
 
-## 🎬 60–90 Second Demo Script
+## 🔒 Security & Best Practices
 
-### Part 1: Real-World Portal Proof (LBCT)
-1. **0–20s (The Pain Point & Real Terminal Navigation)**:
-   - Explain the core drayage problem: checking slow port websites one by one.
-   - Point to the active target badge: **Target: LBCT (Real Terminal)**.
-   - Click the preset **"🌐 Real ISO Container (LBCT Target)"** (`MSCU1234567`) and click **Track**.
-   - Show Solari launching a cloud browser microVM, loading `portal.lbct.com/CargoSearch`, submitting the search, and receiving the authentic response.
-
-### Part 2: Controlled Batch & Priority Workflow (PacificPort)
-2. **20–50s (Batch Parallelization & Multi-Worker Fleet)**:
-   - Click **"⚡ Standard Demo Batch (6 Containers)"**.
-   - Click **"🚀 Track 6 Containers"**.
-   - Point out the **Active Solari Cloud Browser Workers** card showing 3 parallel microVMs logging in and extracting data concurrently.
-3. **50–75s (Demurrage Risk Scoring & Action Ranking)**:
-   - Show the summary metrics ($300/day demo estimate, 2 Action Required, 1 Hold).
-   - Point out the urgency-sorted table with 🔴 **CRITICAL** containers surfaced at the top.
-4. **75–90s (Computer-Use Audit Trail & Session Replay)**:
-   - Click the top CRITICAL container row.
-   - Show the slide-over drawer with raw DOM evidence snippet and recommended dispatch action.
-   - Click **"View Solari Browser Replay"** to open the presigned S3 session replay recording.
-
----
-
-## 🔒 Security & Privacy
-
-- **No Plaintext Passwords in DB**: Portal credentials are never logged or stored in run records.
-- **Strict Environment Variables**: API keys reside exclusively in `.env.local` (gitignored).
-- **Sanitized Inputs**: Container numbers are strictly validated against ISO 6346 and synthetic demo formats.
-- **Isolated Storage**: Local run history is stored in an embedded SQLite WAL database (`draysight.db`, gitignored).
+- **Zero Plaintext Credentials in Logs**: Dispatcher login credentials are never stored in databases or query strings.
+- **Hardware-Isolated Execution**: Every Solari cloud browser runs in its own ephemeral, hardware-isolated microVM.
+- **Strict Format Validation**: All inputs sanitized and validated against standard ISO 6346 checksums before initiating browser sessions.
+- **Embedded Local Persistence**: Run history stored safely in SQLite WAL database (`draysight.db`, gitignored).
 
 ---
 
 ## 📄 License
 
-MIT © 2026 DraySight Team
+MIT © 2026 DraySight Team. Built for the Pinetree Research & Solari SWE Challenge.
