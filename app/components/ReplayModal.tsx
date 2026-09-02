@@ -19,11 +19,14 @@ export function ReplayModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [hasVideo, setHasVideo] = useState(false);
   const [s3Url, setS3Url] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    let timer: NodeJS.Timeout | null = null;
 
     async function loadAndPlay() {
       setIsLoading(true);
@@ -35,6 +38,7 @@ export function ReplayModal({
         if (data.hasReplay && data.events && data.events.length > 0) {
           if (!isMounted) return;
           setHasVideo(true);
+          setIsProcessing(false);
           setS3Url(data.url);
 
           const rrwebPlayerModule = await import("rrweb-player");
@@ -59,13 +63,33 @@ export function ReplayModal({
               speedOption: [0.5, 1, 2, 4],
             },
           });
+
+          setIsLoading(false);
+        } else if (data.isProcessing && retryCount < 10) {
+          // Solari S3 ingestion is still active; retry in 2.5s
+          if (!isMounted) return;
+          setIsProcessing(true);
+          timer = setTimeout(() => {
+            if (isMounted) setRetryCount((prev) => prev + 1);
+          }, 2500);
         } else {
+          // S3 stream not available on this tier; show verified telemetry audit view
+          if (!isMounted) return;
+          setIsProcessing(false);
           setHasVideo(false);
+          setIsLoading(false);
         }
       } catch (err: any) {
-        setHasVideo(false);
-      } finally {
-        if (isMounted) setIsLoading(false);
+        if (!isMounted) return;
+        if (retryCount < 8) {
+          timer = setTimeout(() => {
+            if (isMounted) setRetryCount((prev) => prev + 1);
+          }, 2500);
+        } else {
+          setIsProcessing(false);
+          setHasVideo(false);
+          setIsLoading(false);
+        }
       }
     }
 
@@ -73,13 +97,14 @@ export function ReplayModal({
 
     return () => {
       isMounted = false;
+      if (timer) clearTimeout(timer);
       if (playerInstanceRef.current) {
         try {
           playerInstanceRef.current.pause();
         } catch {}
       }
     };
-  }, [sessionId]);
+  }, [sessionId, retryCount]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,9 +157,9 @@ export function ReplayModal({
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "16px" }}>🛰️</span>
+              <span style={{ fontSize: "16px" }}>🎬</span>
               <span style={{ fontSize: "15px", fontWeight: 600, color: "#e4e4e7" }}>
-                Solari Cloud Worker Audit — {containerNumber}
+                Solari Cloud Session Recording — {containerNumber}
               </span>
             </div>
             <div style={{ fontSize: "12px", color: "#71717a", marginTop: "2px" }}>
@@ -186,14 +211,14 @@ export function ReplayModal({
         <div
           style={{
             backgroundColor: "#050608",
-            minHeight: "420px",
+            minHeight: "440px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             position: "relative",
           }}
         >
-          {isLoading && (
+          {isProcessing && isLoading && (
             <div
               style={{
                 display: "flex",
@@ -203,12 +228,13 @@ export function ReplayModal({
                 color: "#9ca3af",
                 padding: "40px",
                 textAlign: "center",
+                maxWidth: "460px",
               }}
             >
               <div
                 style={{
-                  width: "36px",
-                  height: "36px",
+                  width: "40px",
+                  height: "40px",
                   border: "3px solid #27272a",
                   borderTopColor: "#38bdf8",
                   borderRadius: "50%",
@@ -220,8 +246,30 @@ export function ReplayModal({
                   to { transform: rotate(360deg); }
                 }
               `}</style>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: "#e4e4e7" }}>
-                Connecting to Solari Cloud Telemetry...
+              <div style={{ fontSize: "15px", fontWeight: 600, color: "#f3f4f6" }}>
+                Connecting to Solari Video Stream...
+              </div>
+              <div style={{ fontSize: "12px", color: "#71717a", lineHeight: "1.5" }}>
+                Waiting for cloud Chromium recording buffer to finalize in S3 (Attempt {retryCount + 1}/10)...
+              </div>
+              <div
+                style={{
+                  width: "200px",
+                  height: "4px",
+                  backgroundColor: "#27272a",
+                  borderRadius: "2px",
+                  overflow: "hidden",
+                  marginTop: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.min(100, (retryCount + 1) * 10)}%`,
+                    backgroundColor: "#38bdf8",
+                    transition: "width 0.3s ease",
+                  }}
+                />
               </div>
             </div>
           )}

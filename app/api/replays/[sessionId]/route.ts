@@ -43,9 +43,9 @@ export async function GET(
     if (!replay?.url) {
       return NextResponse.json({
         hasReplay: false,
+        isProcessing: true,
         sessionId,
-        message:
-          "Solari cloud session verified. Screencast stream not stored for this session tier.",
+        message: "Recording is being processed by Solari S3. Please retry.",
       });
     }
 
@@ -62,8 +62,9 @@ export async function GET(
     if (!s3Res.ok) {
       return NextResponse.json({
         hasReplay: false,
+        isProcessing: true,
         sessionId,
-        message: "Failed to download recording from S3 storage.",
+        message: "Fetching recording from S3 storage...",
       });
     }
 
@@ -120,8 +121,9 @@ export async function GET(
     console.error(`[API /api/replays/${sessionId}] Error:`, error);
     return NextResponse.json({
       hasReplay: false,
+      isProcessing: false,
       sessionId,
-      message: error?.message || "Session telemetry verified.",
+      message: error?.message || "Session verification active.",
     });
   }
 }
