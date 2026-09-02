@@ -1,7 +1,8 @@
-import type { ContainerResult } from "../types";
-import type { TerminalPortalAdapter } from "../portals/types";
 import { getSolariClient } from "./client";
 import { normalizeResult } from "../extraction/normalize";
+import type { TerminalPortalAdapter } from "../portals/types";
+import type { ContainerResult } from "../types";
+import type { Page } from "patchright-core";
 
 export interface AgentCheckOptions {
   containerNumber: string;
@@ -12,7 +13,7 @@ export interface AgentCheckOptions {
 export interface AgentCheckResult {
   result: ContainerResult;
   sessionId?: string;
-  durationMs: number;
+  durationMs?: number;
 }
 
 export async function checkContainer(
@@ -64,6 +65,9 @@ export async function checkContainer(
           `[Agent] ✅ ${containerNumber}: ${normalized.status} (${durationMs}ms)`
         );
 
+        // Pause briefly so cloud recording buffer captures the final UI state
+        await new Promise((r) => setTimeout(r, 1500));
+
         return { result: normalized, sessionId, durationMs };
       } finally {
         await browser.close();
@@ -84,8 +88,7 @@ export async function checkContainer(
       sourcePortal: adapter.portalName,
       checkedAt: new Date().toISOString(),
       confidence: "UNKNOWN",
-      error: lastError?.message ?? "Failed to query container after retries",
+      error: lastError?.message || "Failed after maximum retries",
     },
-    durationMs: 0,
   };
 }

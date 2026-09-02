@@ -21,24 +21,43 @@ export async function GET(
   try {
     const solari = await getSolariClient();
 
-    // Retry loop to handle Solari S3 upload latency right after session closure
+    // Extract UUID if composite session ID format
+    const uuidMatch = sessionId.match(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+    );
+    const candidateIds = [sessionId];
+    if (uuidMatch && uuidMatch[0] !== sessionId) {
+      candidateIds.push(uuidMatch[0]);
+    }
+
     let replay: any = null;
     let lastErr: any = null;
 
     for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        replay = await solari.sessions.getReplayUrl(sessionId);
-        if (replay?.url) break;
-      } catch (err: any) {
-        lastErr = err;
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, 1500));
+      for (const id of candidateIds) {
+        try {
+          replay = await solari.sessions.getReplayUrl(id);
+          if (replay?.url) break;
+        } catch (err: any) {
+          lastErr = err;
         }
+      }
+
+      if (replay?.url) break;
+
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
 
     if (!replay?.url) {
-      throw lastErr || new Error("Replay URL not available yet");
+      return NextResponse.json(
+        {
+          error:
+            "Replay recording is still being processed by Solari S3. Please retry in a few seconds.",
+        },
+        { status: 404 }
+      );
     }
 
     if (!wantEvents) {
@@ -51,7 +70,7 @@ export async function GET(
 
     const s3Res = await fetch(replay.url);
     if (!s3Res.ok) {
-      throw new Error(`Failed to fetch replay recording: ${s3Res.statusText}`);
+      throw new Error(`Failed to fetch replay recording from S3: ${s3Res.statusText}`);
     }
 
     const text = await s3Res.text();
