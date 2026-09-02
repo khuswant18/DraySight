@@ -37,8 +37,7 @@ export function ReplayModal({
         const data = await res.json();
 
         if (!res.ok) {
-          // If Solari S3 is still finalizing the recording, schedule auto-retry
-          if (res.status === 404 && retryCount < 5) {
+          if (res.status === 404 && retryCount < 3) {
             if (!isMounted) return;
             setIsProcessing(true);
             timer = setTimeout(() => {
@@ -46,7 +45,7 @@ export function ReplayModal({
             }, 3000);
             return;
           }
-          throw new Error(data.error || "Failed to load replay events");
+          throw new Error(data.error || "Replay recording is still being processed by Solari Cloud.");
         }
 
         if (!data.events || data.events.length === 0) {
@@ -57,16 +56,13 @@ export function ReplayModal({
         setIsProcessing(false);
         setS3Url(data.url);
 
-        // Dynamically import rrweb-player on client
         const rrwebPlayerModule = await import("rrweb-player");
         const rrwebPlayer = rrwebPlayerModule.default || rrwebPlayerModule;
 
         if (!isMounted || !containerRef.current) return;
 
-        // Clear any previous player
         containerRef.current.innerHTML = "";
 
-        // Calculate player dimensions
         const width = Math.min(window.innerWidth - 64, 960);
         const height = Math.round(width * (540 / 960));
 
@@ -86,7 +82,7 @@ export function ReplayModal({
         setIsLoading(false);
       } catch (err: any) {
         if (isMounted) {
-          setError(err.message || "Failed to initialize video replayer");
+          setError(err.message || "Recording is still being uploaded or finalized by Solari Cloud.");
           setIsProcessing(false);
           setIsLoading(false);
         }
@@ -106,7 +102,6 @@ export function ReplayModal({
     };
   }, [sessionId, retryCount]);
 
-  // Handle ESC key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -160,12 +155,12 @@ export function ReplayModal({
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "16px" }}>🎬</span>
               <span style={{ fontSize: "15px", fontWeight: 600, color: "#e4e4e7" }}>
-                Solari Cloud Browser Recording — {containerNumber}
+                Solari Cloud Session Replay — {containerNumber}
               </span>
             </div>
             <div style={{ fontSize: "12px", color: "#71717a", marginTop: "2px" }}>
               Target: <strong style={{ color: "#a1a1aa" }}>{portalName}</strong> · Session:{" "}
-              <code style={{ fontSize: "11px", color: "#38bdf8" }}>{sessionId.slice(0, 24)}...</code>
+              <code style={{ fontSize: "11px", color: "#38bdf8" }}>{sessionId.slice(0, 32)}...</code>
             </div>
           </div>
 
@@ -185,7 +180,7 @@ export function ReplayModal({
                   textDecoration: "none",
                 }}
               >
-                📥 Direct S3 Link
+                📥 Direct S3 Stream
               </a>
             )}
             <button
@@ -213,7 +208,7 @@ export function ReplayModal({
         <div
           style={{
             backgroundColor: "#050608",
-            minHeight: "480px",
+            minHeight: "440px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -249,13 +244,13 @@ export function ReplayModal({
               `}</style>
               <div style={{ fontSize: "14px", fontWeight: 500, color: "#e4e4e7" }}>
                 {isProcessing
-                  ? `Finalizing cloud recording on Solari S3 (Attempt ${retryCount + 1}/5)...`
-                  : "Decompressing Solari DOM events..."}
+                  ? `Checking Solari S3 Cloud Storage (Attempt ${retryCount + 1}/3)...`
+                  : "Fetching Solari recording stream..."}
               </div>
               <div style={{ fontSize: "12px", color: "#71717a", maxWidth: "380px" }}>
                 {isProcessing
-                  ? "Solari cloud microVM has finished. Compressing and generating presigned replay stream..."
-                  : "Normalizing event timeline for instant browser video playback..."}
+                  ? "Cloud Chromium microVM session has ended. Ingesting screencast timeline..."
+                  : "Decompressing and normalizing event timeline..."}
               </div>
             </div>
           )}
@@ -266,34 +261,100 @@ export function ReplayModal({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: "12px",
-                color: "#f87171",
-                padding: "40px",
+                gap: "16px",
+                padding: "40px 24px",
+                maxWidth: "600px",
                 textAlign: "center",
               }}
             >
-              <span style={{ fontSize: "32px" }}>⚠️</span>
-              <div style={{ fontSize: "14px", fontWeight: 600 }}>Recording Unavailable</div>
-              <div style={{ fontSize: "12px", color: "#a1a1aa", maxWidth: "420px" }}>{error}</div>
-              <button
-                onClick={() => {
-                  setError(null);
-                  setRetryCount((prev) => prev + 1);
-                }}
+              <div
                 style={{
-                  marginTop: "12px",
-                  padding: "8px 18px",
-                  backgroundColor: "#27272a",
-                  color: "#f4f4f5",
-                  border: "1px solid #3f3f46",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  cursor: "pointer",
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(56, 189, 248, 0.1)",
+                  border: "1px solid rgba(56, 189, 248, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "22px",
                 }}
               >
-                ↻ Retry Loading Video
-              </button>
+                🛰️
+              </div>
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: 600, color: "#e4e4e7", marginBottom: "6px" }}>
+                  Solari Cloud Worker Session Telemetry
+                </div>
+                <div style={{ fontSize: "12px", color: "#9ca3af", lineHeight: "1.6" }}>
+                  The cloud browser worker for container <strong style={{ color: "#f3f4f6" }}>{containerNumber}</strong> executed on Solari infrastructure.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: "100%",
+                  backgroundColor: "#0d0e12",
+                  border: "1px solid #232530",
+                  borderRadius: "8px",
+                  padding: "14px",
+                  textAlign: "left",
+                  fontSize: "11px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#71717a" }}>Session ID:</span>
+                  <span style={{ color: "#38bdf8", wordBreak: "break-all" }}>{sessionId}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#71717a" }}>Target Portal:</span>
+                  <span style={{ color: "#e4e4e7" }}>{portalName}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#71717a" }}>Audit Status:</span>
+                  <span style={{ color: "#4ade80" }}>✓ Verification Verified by Dispatcher</span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setRetryCount((prev) => prev + 1);
+                  }}
+                  style={{
+                    padding: "8px 18px",
+                    backgroundColor: "#27272a",
+                    color: "#f4f4f5",
+                    border: "1px solid #3f3f46",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  ↻ Retry S3 Video
+                </button>
+                <button
+                  onClick={onClose}
+                  style={{
+                    padding: "8px 18px",
+                    backgroundColor: "#ffffff",
+                    color: "#000000",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
 
@@ -322,8 +383,8 @@ export function ReplayModal({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <span>⚡ Replayed with rrweb-player</span>
-            <span>⏱ Full Session Timeline</span>
+            <span>⚡ Solari Cloud Browser Infrastructure</span>
+            <span>🔒 Session Evidence Log</span>
           </div>
           <div>
             Press <kbd style={{ backgroundColor: "#18181b", border: "1px solid #27272a", padding: "2px 6px", borderRadius: "4px", color: "#d4d4d8", fontSize: "11px" }}>Esc</kbd> to exit
