@@ -98,18 +98,22 @@ export default function HomePage() {
         throw new Error(data.error || "Failed to start tracking");
       }
 
-      // Initial temporary run state
-      setCurrentRun({
-        id: data.runId,
-        portal: data.portal || "PacificPort Demo Terminal",
-        status: "RUNNING",
-        totalContainers: data.totalContainers,
-        completedCount: 0,
-        failedCount: 0,
-        containers: data.validContainers,
-        results: [],
-        startedAt: new Date().toISOString(),
-      });
+      if (data.run) {
+        setCurrentRun(data.run);
+      } else {
+        setCurrentRun({
+          id: data.runId,
+          portal: data.portal || "PacificPort Demo Terminal",
+          status: data.status || "COMPLETED",
+          totalContainers: data.totalContainers,
+          completedCount: data.completedCount || (data.results ? data.results.length : 0),
+          failedCount: data.failedCount || 0,
+          containers: data.validContainers,
+          results: data.results || [],
+          startedAt: new Date().toISOString(),
+        });
+      }
+      setIsSubmitting(false);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to submit tracking job");
       setIsSubmitting(false);

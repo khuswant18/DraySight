@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseContainerInput, validateContainers } from "@/lib/validation/containers";
-import { startTrackingRun } from "@/lib/runner/track-runner";
+import { createTrackingRun } from "@/lib/runner/track-runner";
+import { getRun } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -49,16 +50,25 @@ export async function POST(request: NextRequest) {
     }
 
     const maxConcurrency = parseInt(process.env.MAX_CONCURRENCY || "3", 10);
-    const { runId, initialRun } = await startTrackingRun({
+    const { runId, initialRun, executeBatch } = await createTrackingRun({
       containers: valid,
       maxConcurrency,
     });
 
+    // Execute the Solari cloud browser fleet
+    await executeBatch();
+
+    const finalRun = getRun(runId) || initialRun;
+
     return NextResponse.json({
       runId,
-      status: initialRun.status,
-      portal: initialRun.portal,
+      run: finalRun,
+      status: finalRun.status,
+      portal: finalRun.portal,
       totalContainers: valid.length,
+      completedCount: finalRun.completedCount,
+      failedCount: finalRun.failedCount,
+      results: finalRun.results,
       validContainers: valid,
       invalidContainers: invalid,
       duplicatesRemoved,
