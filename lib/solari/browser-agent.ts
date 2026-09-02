@@ -19,7 +19,7 @@ export async function checkContainer(
   options: AgentCheckOptions
 ): Promise<AgentCheckResult> {
   const { containerNumber, adapter, maxRetries = 2 } = options;
-  const solari = getSolariClient();
+  const solari = await getSolariClient();
 
   let lastError: Error | null = null;
 

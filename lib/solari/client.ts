@@ -1,15 +1,14 @@
-import { Solari } from "@solarisdk/browser";
+let _solari: any = null;
 
-let _solari: Solari | null = null;
-
-export function getSolariClient(): Solari {
+export async function getSolariClient(): Promise<any> {
   if (!_solari) {
     const apiKey = process.env.SOLARI_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "SOLARI_API_KEY is not set. Add it to .env.local or environment."
+        "SOLARI_API_KEY is not set. Please add it to your environment variables."
       );
     }
+    const { Solari } = await import("@solarisdk/browser");
     _solari = new Solari({ apiKey });
   }
   return _solari;

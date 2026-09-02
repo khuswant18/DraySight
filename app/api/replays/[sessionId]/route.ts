@@ -17,7 +17,7 @@ export async function GET(
   const wantEvents = searchParams.get("format") === "events";
 
   try {
-    const solari = getSolariClient();
+    const solari = await getSolariClient();
     const replay = await solari.sessions.getReplayUrl(sessionId);
 
     if (!wantEvents) {
