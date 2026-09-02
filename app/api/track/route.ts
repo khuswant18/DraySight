@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { parseContainerInput, validateContainers } from "@/lib/validation/containers";
-import { createTrackingRun } from "@/lib/runner/track-runner";
+import { startTrackingRun } from "@/lib/runner/track-runner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -49,18 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     const maxConcurrency = parseInt(process.env.MAX_CONCURRENCY || "3", 10);
-    const { runId, initialRun, executeBatch } = await createTrackingRun({
+    const { runId, initialRun } = await startTrackingRun({
       containers: valid,
       maxConcurrency,
-    });
-
-    // Schedule background microVM fleet execution without blocking HTTP response
-    after(async () => {
-      try {
-        await executeBatch();
-      } catch (err) {
-        console.error(`[API /api/track] Background batch error for ${runId}:`, err);
-      }
     });
 
     return NextResponse.json({
